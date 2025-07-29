@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Please enter the source directory you want to back up (e.g., /home/ielfran/Downloads):"
+echo "Please enter the source directory you want to back up (e.g., /home/user/Downloads):"
 read SOURCE_DIR
 
 if [ ! -d "$SOURCE_DIR" ]; then
