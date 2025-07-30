@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# interactive_menu.sh – enhanced interactive toolkit menu
+# interactive_menu.sh – Enhanced interactive toolkit menu
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -13,6 +13,7 @@ NC='\033[0m' # No Color
 # Configuration and history files
 CONFIG_FILE="$HOME/.toolkit_menu.conf"
 HISTORY_FILE="$HOME/.toolkit_menu_history"
+SCRIPTS_DIR="$HOME/toolkit_scripts"  # Default directory for scripts
 
 # Create history file if it doesn't exist
 touch "$HISTORY_FILE"
@@ -45,32 +46,19 @@ ${BLUE}==== TOOLKIT MENU ====${NC}
 EOF
 }
 
-validate_subnet() {
-  [[ $1 =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || {
-    echo -e "${RED}Invalid subnet format${NC}" >&2
-    return 1
-  }
-}
-
-validate_ports() {
-  [[ $1 =~ ^[0-9,-]+$ ]] || {
-    echo -e "${RED}Invalid ports format${NC}" >&2
-    return 1
-  }
-}
-
-validate_file() {
-  [[ -f $1 ]] || {
-    echo -e "${RED}File not found: $1${NC}" >&2
-    return 1
-  }
-}
-
-validate_target() {
-  [[ $1 =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || {
-    echo -e "${RED}Invalid target format (user@host)${NC}" >&2
-    return 1
-  }
+# Generic validation function
+validate_input() {
+  local input=$1
+  local type=$2
+  local error_msg=$3
+  case $type in
+    subnet) [[ $input =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]] || return 1 ;;
+    ports) [[ $input =~ ^[0-9,-]+$ ]] || return 1 ;;
+    file) [[ -f $input ]] || return 1 ;;
+    target) [[ $input =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]] || return 1 ;;
+    *) return 1 ;;
+  esac
+  return 0
 }
 
 read_choice() {
@@ -91,10 +79,10 @@ do_network() {
   else
     read -rp "${GREEN}Subnet (default: $DEFAULT_SUBNET): ${NC}" subnet
     subnet=${subnet:-$DEFAULT_SUBNET}
-    validate_subnet "$subnet" || return 1
+    validate_input "$subnet" subnet "Invalid subnet format" || return 1
     read -rp "${GREEN}Ports (default: $DEFAULT_PORTS): ${NC}" ports
     ports=${ports:-$DEFAULT_PORTS}
-    validate_ports "$ports" || return 1
+    validate_input "$ports" ports "Invalid ports format" || return 1
     read -rp "${GREEN}Output format (json/csv, default: $DEFAULT_FORMAT): ${NC}" format
     format=${format:-$DEFAULT_FORMAT}
     [[ $format == "json" || $format == "csv" ]] || {
@@ -102,14 +90,14 @@ do_network() {
       return 1
     }
   fi
+
   echo -e "${BLUE}Running network scan...${NC}"
-  if ./network_scanner.sh -s "$subnet" -p "$ports" -o "$format"; then
-    echo -e "${GREEN}Network scan completed${NC}"
-    echo "network_scan: $subnet $ports $format" >> "$HISTORY_FILE"
-  else
+  if ! "$SCRIPTS_DIR/network_scanner.sh" -s "$subnet" -p "$ports" -o "$format"; then
     echo -e "${RED}Network scan failed${NC}" >&2
     return 1
   fi
+  echo -e "${GREEN}Network scan completed${NC}"
+  echo "network_scan: $subnet $ports $format" >> "$HISTORY_FILE"
 }
 
 do_encrypt() {
@@ -118,24 +106,27 @@ do_encrypt() {
     echo -e "${RED}Encryption requires interactive input for security${NC}" >&2
     return 1
   fi
+
   read -rp "${GREEN}File to encrypt: ${NC}" file
-  validate_file "$file" || return 1
+  validate_input "$file" file "File not found" || return 1
+
   read -rp "${GREEN}Output encrypted file (default: $DEFAULT_OUTDIR/$(basename "$file").enc): ${NC}" out
   out=${out:-$DEFAULT_OUTDIR/$(basename "$file").enc}
+
   read -rsp "${GREEN}Passphrase: ${NC}" pass
   echo
   [[ -n $pass ]] || {
     echo -e "${RED}Passphrase cannot be empty${NC}" >&2
     return 1
   }
+
   echo -e "${BLUE}Encrypting file...${NC}"
-  if ./encrypt_file.sh -i "$file" -o "$out" -p "$pass"; then
-    echo -e "${GREEN}File encryption completed${NC}"
-    echo "encrypt: $file $out" >> "$HISTORY_FILE"
-  else
+  if ! "$SCRIPTS_DIR/encrypt_file.sh" -i "$file" -o "$out" -p "$pass"; then
     echo -e "${RED}File encryption failed${NC}" >&2
     return 1
   fi
+  echo -e "${GREEN}File encryption completed${NC}"
+  echo "encrypt: $file $out" >> "$HISTORY_FILE"
 }
 
 do_deploy() {
@@ -144,23 +135,26 @@ do_deploy() {
     echo -e "${RED}Deployment requires interactive input${NC}" >&2
     return 1
   fi
+
   read -rp "${GREEN}Deployment script path: ${NC}" script
-  validate_file "$script" || return 1
+  validate_input "$script" file "Script file not found" || return 1
+
   read -rp "${GREEN}Target server (user@host): ${NC}" target
-  validate_target "$target" || return 1
+  validate_input "$target" target "Invalid target format" || return 1
+
   read -rp "${GREEN}Remote directory: ${NC}" dest
   [[ -n $dest ]] || {
     echo -e "${RED}Remote directory cannot be empty${NC}" >&2
     return 1
   }
+
   echo -e "${BLUE}Running deployment...${NC}"
-  if ./auto_deploy.sh -s "$script" -t "$target" -d "$dest"; then
-    echo -e "${GREEN}Deployment completed${NC}"
-    echo "deploy: $script $target $dest" >> "$HISTORY_FILE"
-  else
+  if ! "$SCRIPTS_DIR/auto_deploy.sh" -s "$script" -t "$target" -d "$dest"; then
     echo -e "${RED}Deployment failed${NC}" >&2
     return 1
   fi
+  echo -e "${GREEN}Deployment completed${NC}"
+  echo "deploy: $script $target $dest" >> "$HISTORY_FILE"
 }
 
 non_interactive=false
@@ -172,12 +166,12 @@ while getopts ":c:n" opt; do
   esac
 done
 
-# Check for required scripts
+# Check for required scripts in the SCRIPTS_DIR
 for script in network_scanner.sh encrypt_file.sh auto_deploy.sh; do
-  [[ -x $script ]] || {
-    echo -e "${RED}Required script $script not found or not executable${NC}" >&2
+  if [[ ! -x "$SCRIPTS_DIR/$script" ]]; then
+    echo -e "${RED}Required script $script not found or not executable in $SCRIPTS_DIR${NC}" >&2
     exit 1
-  }
+  fi
 done
 
 while true; do
@@ -192,8 +186,3 @@ while true; do
     3) do_deploy ;;
     4) echo -e "${BLUE}Exiting toolkit${NC}"; exit 0 ;;
   esac
-  echo
-  [[ "$non_interactive" == true ]] && exit 0
-  read -rp "${GREEN}Press Enter to continue...${NC}"
-  echo
-done
