@@ -5,75 +5,100 @@ TASK_FILE="$HOME/.process_scheduler/scheduled_tasks.txt"
 mkdir -p "$LOG_DIR"
 mkdir -p "$(dirname "$TASK_FILE")"
 
+GREEN="\e[32m"
+RED="\e[31m"
+YELLOW="\e[33m"
+CYAN="\e[36m"
+RESET="\e[0m"
+
+trap "echo -e '\n${RED}Exiting...${RESET}'; exit 0" SIGINT
+
 print_menu() {
     clear
-    echo "===================================="
-    echo "         🕒 Process Scheduler        "
-    echo "===================================="
+    echo -e "${CYAN}====================================${RESET}"
+    echo -e "         🕒 ${GREEN}Process Scheduler${RESET}         "
+    echo -e "${CYAN}====================================${RESET}"
     echo "1. Schedule a task (run now)"
     echo "2. Schedule a task (run later)"
     echo "3. View scheduled tasks"
     echo "4. Cancel a scheduled task"
     echo "5. Exit"
-    echo "===================================="
+    echo -e "${CYAN}====================================${RESET}"
 }
 
 run_now() {
     read -rp "Enter the command to run: " cmd
-    log_file="$LOG_DIR/task_$(date +%s).log"
-    echo "Running in background... Logs: $log_file"
-    bash -c "$cmd" >> "$log_file" 2>&1 &
-    echo "Task [$!] started with PID: $!"
-}
+    [[ -z "$cmd" ]] && echo -e "${RED}Command cannot be empty.${RESET}" && return
 
+    log_file="$LOG_DIR/task_$(date +%Y%m%d_%H%M%S).log"
+    echo -e "${YELLOW}Running in background... Logs: $log_file${RESET}"
+    nohup bash -c "$cmd" >> "$log_file" 2>&1 &
+    echo -e "${GREEN}Task started with PID: $!${RESET}"
+}
 run_later() {
-    if ! command -v at &>/dev/null; then
-        echo "The 'at' command is not available on this system."
-        return
-    fi
     read -rp "Enter the command to run: " cmd
-    read -rp "When to run it (e.g., 'now + 1 minute', 'tomorrow 5pm'): " time
-    log_file="$LOG_DIR/task_$(date +%s).log"
-    
-    echo "$cmd >> \"$log_file\" 2>&1" | at "$time" 2>/dev/null
-    if [[ $? -eq 0 ]]; then
-        echo "$time | $cmd | $log_file" >> "$TASK_FILE"
-        echo "Task scheduled. Output will be in: $log_file"
+    [[ -z "$cmd" ]] && echo -e "${RED}Command cannot be empty.${RESET}" && return
+
+    echo -e "Choose scheduling method:"
+    echo -e "  1. In X seconds/minutes"
+    echo -e "  2. At a specific time (requires 'at' command)"
+    read -rp "Option [1-2]: " sched_type
+
+    log_file="$LOG_DIR/task_$(date +%Y%m%d_%H%M%S).log"
+
+    if [[ "$sched_type" == "1" ]]; then
+        read -rp "Run after how many seconds? " delay
+        [[ ! "$delay" =~ ^[0-9]+$ ]] && echo -e "${RED}Delay must be a number.${RESET}" && return
+        nohup bash -c "sleep $delay && $cmd >> \"$log_file\" 2>&1" &
+        echo "$! | +${delay}s | $cmd | $log_file" >> "$TASK_FILE"
+        echo -e "${GREEN}Task scheduled in $delay seconds. Logs: $log_file${RESET}"
+    elif [[ "$sched_type" == "2" ]]; then
+        if ! command -v at &>/dev/null; then
+            echo -e "${RED}The 'at' command is not available on this system.${RESET}"
+            return
+        fi
+        read -rp "When to run it (e.g., 'now + 1 minute', 'tomorrow 5pm'): " time
+        job_id=$(echo "$cmd >> \"$log_file\" 2>&1" | at "$time" 2>/dev/null | awk '{print $2}')
+        if [[ $? -eq 0 && -n "$job_id" ]]; then
+            echo "$job_id | $time | $cmd | $log_file" >> "$TASK_FILE"
+            echo -e "${GREEN}Task scheduled (Job ID: $job_id). Logs: $log_file${RESET}"
+        else
+            echo -e "${RED}Failed to schedule task. Check your time format or 'atd' service.${RESET}"
+        fi
     else
-        echo "Failed to schedule task. Please check your time format or 'atd' service."
+        echo -e "${RED}Invalid scheduling option.${RESET}"
     fi
 }
 
 view_tasks() {
-    echo "======= Scheduled Tasks ======="
+    echo -e "${CYAN}======= Scheduled Tasks =======${RESET}"
     if [[ -f "$TASK_FILE" && -s "$TASK_FILE" ]]; then
-        nl "$TASK_FILE"
+        nl -w2 -s". " "$TASK_FILE"
     else
-        echo "No tasks scheduled."
+        echo -e "${YELLOW}No tasks scheduled.${RESET}"
     fi
-    echo "==============================="
+    echo -e "${CYAN}===============================${RESET}"
 }
 
 cancel_task() {
     view_tasks
+    [[ ! -s "$TASK_FILE" ]] && return
+
     read -rp "Enter the line number of the task to cancel: " num
+    [[ ! "$num" =~ ^[0-9]+$ ]] && echo -e "${RED}Invalid selection.${RESET}" && return
+
     task_line=$(sed -n "${num}p" "$TASK_FILE")
-    [[ -z "$task_line" ]] && echo "Invalid selection." && return
+    [[ -z "$task_line" ]] && echo -e "${RED}Invalid selection.${RESET}" && return
 
-    # Get the 'at' job ID
-    job_list=$(atq)
-    while IFS= read -r line; do
-        job_id=$(echo "$line" | awk '{print $1}')
-        at_time=$(at -c "$job_id" | tail -n +2)
-        if [[ "$at_time" == *"${task_line#*| }"* ]]; then
-            atrm "$job_id"
-            sed -i "${num}d" "$TASK_FILE"
-            echo "Cancelled job ID $job_id"
-            return
-        fi
-    done <<< "$job_list"
+    job_id=$(echo "$task_line" | cut -d '|' -f1 | tr -d ' ')
+    atrm "$job_id" 2>/dev/null
 
-    echo "Unable to match or cancel the task."
+    if [[ $? -eq 0 ]]; then
+        sed -i "${num}d" "$TASK_FILE"
+        echo -e "${GREEN}Cancelled Job ID $job_id.${RESET}"
+    else
+        echo -e "${RED}Failed to cancel Job ID $job_id. It may have already run.${RESET}"
+    fi
 }
 
 main() {
@@ -85,8 +110,8 @@ main() {
             2) run_later ;;
             3) view_tasks ;;
             4) cancel_task ;;
-            5) echo "Goodbye!"; exit 0 ;;
-            *) echo "Invalid choice. Try again." ;;
+            5) echo -e "${GREEN}Goodbye!${RESET}"; exit 0 ;;
+            *) echo -e "${RED}Invalid choice. Try again.${RESET}" ;;
         esac
         read -rp "Press enter to continue..."
     done
