@@ -1,7 +1,6 @@
 # 🐚 Bash Scripting Challenges
 
 Welcome to my Bash scripting practice repository! 💻  
-This repo contains solutions to Bash scripting problems from **Beginner** to **Expert** level.
 
 ---
 
@@ -53,7 +52,6 @@ This repo contains solutions to Bash scripting problems from **Beginner** to **E
 | 🌐 | Web Scraping | [`web_scraper.sh`](scripts/advanced/web_scraper.sh) |
 | 🗄️ | Database Backup | [`db_backup.sh`](scripts/advanced/db_backup.sh) |
 | 🌍 | Network Scanner | [`network_scanner.sh`](scripts/advanced/network_scanner.sh) |
-| 🎛️ | Interactive Menu | [`interactive_menu.sh`](scripts/advanced/interactive_menu.sh) |
 | 🔐 | File Encryption | [`encrypt_file.sh`](scripts/advanced/encrypt_file.sh) |
 | 🚀 | Automated Deployment | [`auto_deploy.sh`](scripts/advanced/auto_deploy.sh) |
 
@@ -79,4 +77,3 @@ This repo contains solutions to Bash scripting problems from **Beginner** to **E
 ```bash
 chmod +x script_name.sh
 ./script_name.sh
-
