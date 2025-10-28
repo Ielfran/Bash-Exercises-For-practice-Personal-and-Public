@@ -61,14 +61,14 @@ Welcome to my Bash scripting practice repository! 💻
 
 | No. | Description | Script |
 |-----|-------------|--------|
-| 💬 | Custom Shell | [`custom_shell.sh`](scripts/expert/custom_shell.sh) |
-| ⏰ | Process Scheduler | [`scheduler.sh`](scripts/expert/scheduler.sh) |
-| ⚖️ | Load Balancer Simulation | [`load_balancer.sh`](scripts/expert/load_balancer.sh) |
-| 🧾 | Log Analyzer | [`log_analyzer.sh`](scripts/expert/log_analyzer.sh) |
-| 🔄 | File Synchronization | [`sync_files.sh`](scripts/expert/sync_files.sh) |
-| 🧪 | API Interaction | [`api_fetch.sh`](scripts/expert/api_fetch.sh) |
-| 🐳 | Docker Management | [`docker_mgmt.sh`](scripts/expert/docker_mgmt.sh) |
-| 📌 | Custom CLI Tool | [`todo_tool.sh`](scripts/expert/todo_tool.sh) |
+| 💬 | Custom Shell | [`custom_shell.sh`](scripts/experts/custom_shell.sh) |
+| ⏰ | Process Scheduler | [`scheduler.sh`](scripts/experts/scheduler.sh) |
+| ⚖️ | Load Balancer Simulation | [`load_balancer.sh`](scripts/experts/load_balancer.sh) |
+| 🧾 | Log Analyzer | [`log_analyzer.sh`](scripts/experts/log_analyzer.sh) |
+| 🔄 | File Synchronization | [`sync_files.sh`](scripts/experts/sync_files.sh) |
+| 🧪 | API Interaction | [`api_fetch.sh`](scripts/experts/api_fetch.sh) |
+| 🐳 | Docker Management | [`docker_mgmt.sh`](scripts/experts/docker_mgmt.sh) |
+| 📌 | Custom CLI Tool | [`todo_tool.sh`](scripts/experts/todo_tool.sh) |
 
 ---
 
