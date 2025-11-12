@@ -23,7 +23,7 @@ next_backend() {
     for ((i=0; i<max_retries; i++)); do
         if [ "$STRATEGY" == "random" ]; then
             CURRENT=$(( RANDOM % ${#BACKENDS[@]} ))
-        else # round-robin
+        else
             CURRENT=$(( (CURRENT + 1) % ${#BACKENDS[@]} ))
         fi
 

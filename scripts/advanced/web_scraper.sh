@@ -26,7 +26,6 @@ echo "==================== Web Scraping Report ====================" >> $LOG_FIL
 echo "Scraping started at: $DATE" >> $LOG_FILE
 
 if [ -n "$TITLE" ]; then
-    # Save title to output file
     echo "$TITLE" > "$OUTPUT_FILE"
     echo "Successfully scraped the following title:" >> $LOG_FILE
     echo "$TITLE" >> $LOG_FILE

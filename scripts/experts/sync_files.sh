@@ -3,8 +3,6 @@
 set -o pipefail
 set -e
 
-# --- Helper Functions ---
-
 usage() {
     cat <<EOF
 Usage: $0 [-c|--config /path/to/config] [-d|--dry-run]
@@ -28,8 +26,6 @@ cleanup() {
         log "Lock file removed."
     fi
 }
-
-# --- Argument Parsing ---
 
 CONFIG_FILE=""
 DRY_RUN_FLAG=""
@@ -59,11 +55,8 @@ if [[ -z "$CONFIG_FILE" ]] || [[ ! -f "$CONFIG_FILE" ]]; then
     usage
 fi
 
-# --- Load Configuration ---
-
 source "$CONFIG_FILE"
 
-# Validate required config variables
 if [[ -z "$SYNC_NAME" ]]; then
     echo "Error: SYNC_NAME must be set in the config file."
     exit 1
@@ -85,8 +78,6 @@ if [[ -z "$LOG_FILE" ]]; then
     exit 1
 fi
 
-# --- Setup ---
-
 mkdir -p "$(dirname "$LOG_FILE")"
 
 LOCK_FILE="/tmp/${SYNC_NAME}.lock"
@@ -101,13 +92,11 @@ trap cleanup EXIT SIGHUP SIGINT SIGTERM
 touch "$LOCK_FILE"
 log "Lock file created."
 
-# Check rsync availability
 if ! command -v rsync &> /dev/null; then
     log "Error: rsync is not installed. Please install it to continue."
     exit 1
 fi
 
-# Validate source and destination directories
 if [[ ! -d "$SOURCE_DIR" ]]; then
     log "Error: Source directory $SOURCE_DIR does not exist."
     exit 1
@@ -118,7 +107,6 @@ if [[ "$DEST_DIR" != *":"* ]] && [[ ! -d "$DEST_DIR" ]]; then
     mkdir -p "$DEST_DIR"
 fi
 
-# --- Rsync Options ---
 
 RSYNC_OPTS=(-avh --progress ${EXCLUDE_OPTS})
 
@@ -127,7 +115,6 @@ if [[ -n "$DRY_RUN_FLAG" ]]; then
     log "Performing dry run - no changes will be made."
 fi
 
-# --- Sync Logic ---
 
 if [[ "$SYNC_MODE" == "one-way" ]]; then
     log "Starting one-way sync from $SOURCE_DIR to $DEST_DIR"
@@ -164,7 +151,6 @@ else
     exit 1
 fi
 
-# --- Post Sync ---
 
 if [[ $RSYNC_EXIT_CODE -eq 0 ]]; then
     log "Sync completed successfully."

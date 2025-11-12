@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# sys-toolkit - Advanced system administration CLI tool
-
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -15,7 +13,6 @@ CONFIG[mem_warn_threshold]=80
 CONFIG[disk_warn_threshold]=85
 CONFIG[debug]=false
 
-# ANSI colors
 readonly COLOR_RESET='\e[0m'
 readonly COLOR_RED='\e[0;31m'
 readonly COLOR_GREEN='\e[0;32m'
@@ -37,7 +34,6 @@ log() {
     local timestamp
     timestamp=$(date +'%Y-%m-%d %H:%M:%S %Z')
 
-    # Fallback to user logs if /var/log not writable
     if ! touch "${CONFIG[log_file]}" &>/dev/null; then
         CONFIG[log_file]="${HOME}/.local/logs/${SCRIPT_NAME}.log"
         mkdir -p "$(dirname "${CONFIG[log_file]}")"

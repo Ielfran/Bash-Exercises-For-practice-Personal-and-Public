@@ -1,27 +1,8 @@
 #!/usr/bin/env bash
-#
-#
-#          FILE: docker-manager.sh
-#
-#         USAGE: ./docker-manager.sh [options] <command> [command-args...]
-#
-#   DESCRIPTION: Expert-level Docker management CLI.
-#                Build, run, manage, and clean up Docker resources
-#                with structured logging and safety features.
-#
-#       OPTIONS:
-#         -c, --config <file>   Specify configuration file (default: docker-manager.conf)
-#         -e, --env <file>      Specify environment file (default: .env if exists)
-#         -y, --yes             Skip confirmation prompts
-#         -v, --verbose         Enable verbose (debug) logging
-#         -h, --help            Show help
-#
-
 set -o errexit
 set -o nounset
 set -o pipefail
 
-# Default Config Values 
 CONFIG_FILE="docker-manager.conf"
 ENV_FILE=""
 SKIP_CONFIRM=false
@@ -36,7 +17,6 @@ CONTAINER_NAME="my-app-container"
 PORT_MAPPING="8080:80"
 RESTART_POLICY="unless-stopped"
 
-# Logging Functions  
 log() {
     local level="$1"; shift
     local color_reset="\033[0m"
@@ -58,7 +38,6 @@ confirm() {
     [[ "$ans" =~ ^[Yy]$ ]]
 }
 
-# Helpers     
 check_docker() {
     if ! command -v docker &>/dev/null; then
         log ERROR "Docker is not installed."
@@ -72,7 +51,6 @@ check_docker() {
 
 load_config() {
     if [[ -f "$CONFIG_FILE" ]]; then
-        # shellcheck disable=SC1090
         source "$CONFIG_FILE"
         log INFO "Loaded config from $CONFIG_FILE"
     else
@@ -87,7 +65,6 @@ detect_env_file() {
     fi
 }
 
-# Docker Command Wrappers
 build_image() {
     log INFO "Building image ${IMAGE_NAME}:${IMAGE_TAG}..."
     docker build \
@@ -144,7 +121,6 @@ prune_docker() {
 list_containers() { docker ps -a --filter "name=${CONTAINER_NAME}"; }
 list_images() { docker images "${IMAGE_NAME}"; }
 
-# CLI Parsing  
 show_help() {
     grep '^# ' "$0" | sed 's/^# //'
 }
@@ -164,7 +140,6 @@ parse_opts() {
     done
 }
 
-# Main            
 main() {
     check_docker
     parse_opts "$@"

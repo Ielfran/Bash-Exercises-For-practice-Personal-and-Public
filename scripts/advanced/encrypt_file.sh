@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# symmetric GPG encryption/decryption
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m' 
 
-# Logging
 LOG_FILE="$HOME/.encrypt_file.log"
 MAX_LOG_SIZE=$((1024*1024))
 
@@ -71,7 +68,6 @@ log_message() {
   echo "[$timestamp] $1" >> "$LOG_FILE"
 }
 
-# Default values
 in=""
 out=""
 pass=""
@@ -79,7 +75,6 @@ compression=6
 backup=false
 decrypt=false
 
-# Parse options
 while getopts ":i:o:p:c:bd" opt; do
   case $opt in
     i) in=$OPTARG ;;
@@ -92,19 +87,16 @@ while getopts ":i:o:p:c:bd" opt; do
   esac
 done
 
-# Validate inputs
 [[ -f $in ]] || { echo -e "${RED}Input file not found: $in${NC}" >&2; log_message "Error: Input file not found: $in"; exit 1; }
 [[ -n $out ]] || { echo -e "${RED}Output file not specified${NC}" >&2; log_message "Error: Output file not specified"; usage; }
 [[ $out != "$in" ]] || { echo -e "${RED}Input and output files cannot be the same${NC}" >&2; log_message "Error: Input and output files cannot be the same"; exit 1; }
 
-# Check for GPG
 if ! command -v gpg >/dev/null; then
   echo -e "${RED}GPG not installed${NC}" >&2
   log_message "Error: GPG not installed"
   exit 1
 fi
 
-# Prompt for passphrase
 if [[ -z $pass ]]; then
   read -rsp "${GREEN}Enter passphrase: ${NC}" pass
   echo
@@ -115,7 +107,6 @@ if [[ -z $pass ]]; then
   fi
 fi
 
-# Validate passphrase (only on encryption)
 if [[ $decrypt == false ]]; then
   [[ $compression =~ ^[0-9]$ ]] || {
     echo -e "${RED}Invalid compression level (0-9)${NC}" >&2
@@ -125,16 +116,13 @@ if [[ $decrypt == false ]]; then
   check_passphrase_strength "$pass" || { log_message "Error: Weak passphrase"; exit 1; }
 fi
 
-# Rotate log
 rotate_log
 
-# Handle existing output
 if [[ -f $out && $backup == true ]]; then
   mv "$out" "${out}.$(date -u +%s).bak"
   log_message "Backed up existing output file to ${out}.$(date -u +%s).bak"
 fi
 
-# Main operation
 if [[ $decrypt == true ]]; then
   echo -e "${BLUE}Decrypting $in to $out...${NC}"
   log_message "Starting decryption of $in to $out"

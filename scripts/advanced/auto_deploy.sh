@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-#This script automates secure file deployments from your local machine to a remote server using rsync over SSH. It copies files from a specified local directory (like ./build) to a target server (user@example.com:/var/www/myapp), with optional features like backups, post-deployment commands (e.g., restarting services), dry-run testing, and rollback to previous versions if something goes wrong.
 set -eo pipefail
 IFS=$'\n\t'
 
-# Configuration defaults
 DRY_RUN=false
 VERBOSE=false
 MAX_BACKUPS=5
@@ -120,16 +118,13 @@ main() {
 
   [[ -z "$src" || -z "$target" || -z "$dest" ]] && usage
 
-  # Configure SSH and rsync arguments
   SSH_ARGS+=("${ssh_extra[@]}")
   [[ $VERBOSE == true ]] && RSYNC_ARGS+=(-v) || RSYNC_ARGS+=(-q)
   RSYNC_ARGS+=("${rsync_extra[@]}")
 
-  # Validate inputs
   validate_ssh
   validate_paths
 
-  # Handle rollback
   if [[ $rollback_mode == true ]]; then
     [[ -n "$backup" ]] || error "Backup prefix required for rollback (-b)"
     rollback
@@ -137,12 +132,10 @@ main() {
 
   timestamp=$(date -u +"%Y%m%dT%H%M%SZ")
 
-  # Optional backup
   if [[ -n "$backup" ]]; then
     create_backup
   fi
 
-  # Perform deployment
   log "Starting deployment from $src to ${target}:${dest}"
 
   if [[ $DRY_RUN == true ]]; then
@@ -153,7 +146,6 @@ main() {
     rsync "${RSYNC_ARGS[@]}" "$src" "${target}:${dest}" | tee >( [[ -n "$log_file" ]] && tee -a "$log_file" > /dev/null ) || error "rsync failed"
   fi
 
-  # Remote post-deploy command
   if [[ -n "$cmd" ]]; then
     log "Executing remote command: $cmd"
     [[ $DRY_RUN == false ]] && ssh "${SSH_ARGS[@]}" "$target" "$cmd"
